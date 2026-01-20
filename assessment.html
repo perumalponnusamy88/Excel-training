@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Excel Training — Assessment (25 of 50)</title>
+<style>
+  :root{--ink:#0f172a;--muted:#475569;--line:#e2e8f0;--card:#f8fafc;--accent:#2563eb;--good:#16a34a;--bad:#dc2626}
+  body{font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;color:var(--ink);margin:0;background:#fff}
+  .wrap{max-width:900px;margin:28px auto;padding:0 16px}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:16px;flex-wrap:wrap}
+  h1{font-size:22px;margin:0}
+  .meta{color:var(--muted);font-size:14px}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  input[type="text"]{padding:10px 12px;border:1px solid var(--line);border-radius:10px;min-width:240px}
+  .card{border:1px solid var(--line);border-radius:14px;background:#fff;margin:14px 0;padding:16px}
+  .qtitle{font-weight:600;margin-bottom:10px}
+  .opts{list-style:none;padding:0;margin:0}
+  .opts li{margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+  .opts li input{margin-right:8px}
+  .btns{display:flex;gap:12px;margin:16px 0}
+  button{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#eef2ff;cursor:pointer}
+  button.primary{background:#2563eb;color:#fff;border-color:#2563eb}
+  .score{font-size:18px;margin:6px 0}
+  .pass{color:var(--good);font-weight:700}
+  .fail{color:var(--bad);font-weight:700}
+  .hidden{display:none}
+  .tag{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-left:8px;color:var(--muted);font-size:12px}
+  .log{white-space:pre-wrap;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:13px;color:#111827;background:#f9fafb;border:1px solid var(--line);border-radius:12px;padding:12px;max-height:220px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Excel Training — Assessment</h1>
+    <div class="meta">
+      25 questions (randomized) from a 50-question bank
+      <span class="tag">Pass ≥ 75</span>
+      <span class="tag">Score /100</span>
+    </div>
+  </header>
+
+  <div class="row">
+    <label for="candidate">Your Name:</label>
+    <input id="candidate" type="text" placeholder="Enter your name" />
+  </div>
+
+  <div id="quiz"></div>
+
+  <div class="btns">
+    <button id="submit" class="primary">Submit</button>
+    <button id="retry" class="hidden">Retake (new 25)</button>
+    <button id="downloadLog" class="hidden">Download Log (.txt)</button>
+  </div>
+
+  <div id="result" class="card hidden">
+    <div class="score"></div>
+    <div class="detail"></div>
+  </div>
+
+  <div id="logWrap" class="card hidden">
+    <div style="font-weight:600;margin-bottom:8px">Local Attempt Log (this browser)</div>
+    <div id="logBox" class="log"></div>
+  </div>
+</div>
+
+<script>
+/* ===== Question bank (50 total) =====
+   Covers Modules 1–12 content from your training doc:
+   basics, interface, data types, formatting, formulas,
+   lookups, dynamic arrays, cleaning, tables/charts,
+   pivots, dashboards, collaboration, file types.
+*/
+const BANK = [
+  // Module 1–2 (Intro, Data Entry & Formatting)
+  {q:"In Excel, a workbook is best described as:", opts:["A single cell","The entire file containing sheets","A column only","A chart object"], a:1},
+  {q:"Which is a cell reference?", opts:["SUM","A1","Sheet","Tab"], a:1},
+  {q:"Best number format for Indian currency?", opts:["General","Text","Currency (₹)","Percentage"], a:2},
+  {q:"Which shortcut saves the workbook?", opts:["Ctrl+C","Ctrl+S","Ctrl+Z","Ctrl+X"], a:1},
+  {q:"Conditional Formatting is used to:", opts:["Insert images","Automatically highlight data by rules","Merge cells","Protect sheets"], a:1},
+  {q:"Data Validation is commonly used for:", opts:["Changing ribbon tabs","Creating drop-down lists","Recording macros","Freezing panes"], a:1},
+  {q:"Text functions to fix spacing/non-printables:", opts:["TRIM/CLEAN","SIN/COS","UPPER/LOWER only","PI/E"], a:0},
+  {q:"Good dataset rule:", opts:["Merged headers are fine","Blank rows make pivots easier","One header row only","Mix dates and text in one column"], a:2},
+
+  // Module 3–5 (Basic → Advanced Formulas)
+  {q:"Formulas in Excel start with:", opts:["=","+","@","#"], a:0},
+  {q:"Which returns the smallest value?", opts:["MAX","MIN","AVERAGE","SUM"], a:1},
+  {q:"Absolute reference is written as:", opts:["A1","$A$1","A$1:A$10","(A1)"], a:1},
+  {q:"A safer modern replacement for VLOOKUP is:", opts:["INDEX","MATCH","XLOOKUP","HLOOKUP"], a:2},
+  {q:"Which function extracts unique values (Microsoft 365)?", opts:["DISTINCT","UNIQUE","DEDUP","SINGLE"], a:1},
+  {q:"Return only rows where Region = 'East':", opts:["SORT","FILTER","UNIQUE","TEXTSPLIT"], a:1},
+  {q:"Wrap a formula so errors show as 'N/A data':", opts:["IF","IFERROR","IFS","IFNA"], a:1},
+
+  // Module 6–7 (Cleaning & Preparing Datasets)
+  {q:"Power Query is primarily used for:", opts:["Typing formulas","Cleaning/transforming data steps","Protecting sheets","Printing"], a:1},
+  {q:"Text to Columns is used to:", opts:["Create charts","Split combined text into separate columns","Delete rows","Format dates"], a:1},
+  {q:"Excel Tables advantage:", opts:["Never expand","No filtering","Structured references like Table1[Sales]","Remove headers"], a:2},
+  {q:"Named Ranges are managed from:", opts:["Data tab","Name Manager","Developer tab","View tab"], a:1},
+  {q:"Which prevents inconsistent entries at source?", opts:["Conditional Formatting","Slicer","Data Validation","Grouping"], a:2},
+
+  // Module 8 (Tables & Charts)
+  {q:"Best chart to show trend over time:", opts:["Pie","Line","Scatter","TreeMap"], a:1},
+  {q:"To compare categories side by side:", opts:["Line","Column/Bar","Pie","Sparkline"], a:1},
+  {q:"Tables + charts combo benefit:", opts:["Charts ignore table changes","Tables auto-expand so charts update","Charts remove filters","Tables disable formulas"], a:1},
+
+  // Module 9 (Pivot Tables & Charts)
+  {q:"Pivot Tables allow you to:", opts:["Edit VBA code","Summarize data without formulas","Record audio","Encrypt files"], a:1},
+  {q:"To filter Pivot interactively:", opts:["Timeline/Slicers","Goal Seek","Solver","Form Controls only"], a:0},
+  {q:"Group date by month in Pivot from:", opts:["Field Settings → Group","Protect Sheet","Power Pivot only","Data Validation"], a:0},
+  {q:"Pivot Charts are:", opts:["Static images","Linked to Pivot Tables","Only in Google Sheets","Unsupported in latest Excel"], a:1},
+
+  // Module 10 (Dashboards)
+  {q:"KPI cards typically show:", opts:["Raw rows","Key metrics like Total/Avg/Max","Code editor","Merged cells count"], a:1},
+  {q:"Good dashboard design:", opts:["Too many colors","Busy gridlines","Clear layout & consistent styles","Random fonts"], a:2},
+
+  // Module 11 (Collaboration & Sharing)
+  {q:"Real-time co-authoring works best via:", opts:["Saving locally","OneDrive/SharePoint","Emailing files only","USB pen drives"], a:1},
+  {q:"Restore an older cloud file version from:", opts:["Developer tab","Version History","Goal Seek","VBA Editor"], a:1},
+  {q:"Protect only formulas but allow inputs:", opts:["Protect Sheet + unlock input cells","Encrypt workbook","Track Changes","Freeze Panes"], a:0},
+
+  // Module 12 (File Types)
+  {q:".xlsb is preferred when:", opts:["Macros only","You need faster load/save for big files","For images only","Mobile only"], a:1},
+  {q:".csv files:", opts:["Keep formulas and charts","Are plain text, data only","Encrypt by default","Are macro-enabled"], a:1},
+  {q:".xlsm means:", opts:["Macro-enabled workbook","Template file","Binary workbook","Legacy 97-2003"], a:0},
+
+  // Add more to reach 50
+  {q:"COUNT counts ______ only.", opts:["Text","Blank cells","Numbers","Everything"], a:2},
+  {q:"COUNTA counts:", opts:["Only numbers","Numbers + text (non-blank)","Only dates","Only errors"], a:1},
+  {q:"To lock layout and prevent new sheets from being added:", opts:["Protect Workbook","Protect Sheet","Protect Range","Freeze Panes"], a:0},
+  {q:"MIN, MAX, AVERAGE are:", opts:["Chart types","Stat functions","Formatting options","Data types"], a:1},
+  {q:"Which returns last day of month:", opts:["EOMONTH","ENDMONTH","LASTDAY","MONTHEND"], a:0},
+  {q:"Which function changes text case to Title Case?", opts:["PROPER","UPPER","LOWER","TITLE"], a:0},
+  {q:"A mixed reference example:", opts:["A1","$A$1","A$1","A1$"], a:2},
+  {q:"XLOOKUP advantage:", opts:["Requires sorted first column","Can look left or right","Only vertical search","Only returns text"], a:1},
+  {q:"IF formula needs at least:", opts:["A condition and two results","A chart and a table","Two worksheets","A macro"], a:0},
+  {q:"Shortcut to switch sheets:", opts:["Ctrl+PgUp/PgDn","Ctrl+Alt+Del","Alt+Tab","Ctrl+Shift+S"], a:0},
+  {q:"Power Query steps are:", opts:["One-time only","Recorded and refreshable","Random every time","Done in VBA only"], a:1},
+  {q:"Best place for calculations when keeping raw data clean:", opts:["Inside raw table rows","Separate summary sheet or pivots","In header row","Hidden columns only"], a:1},
+  {q:"A good 'Good vs Bad' dataset rule:", opts:["Subtotals inside raw table","No blank rows","Multiple header rows ok","Mix currencies & text"], a:1},
+  {q:"To create dynamic sequence 1..10:", opts:["ROW(1:10)","SEQUENCE(10)","RAND()","INDEX(10)"], a:1},
+  {q:"To show % contribution in Pivot:", opts:["Show Values As → % of Grand Total","Protect Workbook","Record Macro","Freeze Panes"], a:0},
+  {q:"Which chart best shows parts of a whole:", opts:["Pie/Donut","Line","Scatter","Histogram"], a:0},
+  {q:"Which file type supports macros:", opts:[".xlsx",".xlsm",".csv",".xltx"], a:1},
+  {q:"OneDrive link with 'Can view' means:", opts:["Recipients can edit","Recipients can only view","Deletes after 1 day","Shows version history only"], a:1},
+  {q:"TEXTJOIN delimiter is placed:", opts:["Between each joined value","Only at start","Only at end","Not used"], a:0}
+];
+
+// Ensure we have exactly 50 (in case you add more later)
+if (BANK.length < 50) { console.warn("Bank has fewer than 50; current:", BANK.length); }
+
+// ---- helper funcs (shuffle, pick25, render, scoring) ----
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}return arr}
+function pick25(){const idxs=Array.from({length:BANK.length},(_,i)=>i);shuffle(idxs);return idxs.slice(0,25).map(i=>({...BANK[i],id:i}))}
+let QUIZ = pick25();
+function render(){
+  const root=document.getElementById("quiz"); root.innerHTML="";
+  QUIZ.forEach((q,qi)=>{
+    const card=document.createElement("div"); card.className="card";
+    const title=document.createElement("div"); title.className="qtitle"; title.textContent=`${qi+1}. ${q.q}`; card.appendChild(title);
+    const ul=document.createElement("ul"); ul.className="opts";
+    q.opts.forEach((opt,oi)=>{
+      const li=document.createElement("li");
+      li.innerHTML=`<label><input type="radio" name="q${qi}" value="${oi}">${opt}</label>`;
+      li.addEventListener("click",()=>{li.querySelector("input").checked=true;});
+      ul.appendChild(li);
+    });
+    card.appendChild(ul); root.appendChild(card);
+  });
+}
+function scoreQuiz(){
+  let correct=0, answered=0;
+  QUIZ.forEach((q,qi)=>{
+    const chosen=document.querySelector(`input[name="q${qi}"]:checked`);
+    if(chosen){answered++; if(Number(chosen.value)===q.a) correct++;}
+  });
+  const score=Math.round((correct/QUIZ.length)*100);
+  return {score, correct, total:QUIZ.length, answered};
+}
+function ts(){const d=new Date(); const pad=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`}
+
+// ---- local log helpers ----
+const LOG_KEY="excel_assessment_log";
+function readLog(){ try{return JSON.parse(localStorage.getItem(LOG_KEY)||"[]");} catch(e){return []} }
+function writeLog(rows){ localStorage.setItem(LOG_KEY, JSON.stringify(rows)); }
+function appendLog(entry){
+  const rows=readLog(); rows.push(entry); writeLog(rows); return rows;
+}
+function renderLogBox(){
+  const rows=readLog();
+  const lines = ["Name\tScore\tCorrect/Total\tWhen"];
+  rows.forEach(r=>lines.push(`${r.name}\t${r.score}\t${r.correct}/${r.total}\t${r.time}`));
+  const txt=lines.join("\n");
+  const box=document.getElementById("logBox");
+  box.textContent=txt;
+  document.getElementById("logWrap").classList.remove("hidden");
+  document.getElementById("downloadLog").classList.remove("hidden");
+}
+function downloadTextFile(filename, text){
+  const blob=new Blob([text],{type:"text/plain"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=filename;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+
+// ---- submit / retry ----
+document.getElementById("submit").addEventListener("click", ()=>{
+  const name=document.getElementById("candidate").value.trim();
+  if(!name){ alert("Please enter your name before submitting."); return; }
+
+  const res=scoreQuiz();
+  const pass = res.score>=75;
+
+  // UI
+  const box=document.getElementById("result");
+  box.classList.remove("hidden");
+  box.querySelector(".score").innerHTML =
+    `Your Score: <strong>${res.score}/100</strong> — <span class="${pass?'pass':'fail'}">${pass?'PASS':'RETAKE REQUIRED'}</span>`;
+  box.querySelector(".detail").textContent = `Answered ${res.answered}/${res.total} — Correct ${res.correct}`;
+  document.getElementById("retry").classList.toggle("hidden", pass);
+
+  // Log locally and show
+  const entry={name, score:res.score, correct:res.correct, total:res.total, time:ts()};
+  const rows=appendLog(entry);
+  renderLogBox();
+
+  // Also auto-download/update a text log for you to save
+  const lines=["Name\tScore\tCorrect/Total\tWhen"];
+  rows.forEach(r=>lines.push(`${r.name}\t${r.score}\t${r.correct}/${r.total}\t${r.time}`));
+  downloadTextFile("assessment-log.txt", lines.join("\n"));
+});
+
+document.getElementById("retry").addEventListener("click", ()=>{
+  QUIZ=pick25(); render();
+  document.getElementById("result").classList.add("hidden");
+  document.getElementById("retry").classList.add("hidden");
+  window.scrollTo({top:0, behavior:"smooth"});
+});
+
+document.getElementById("downloadLog").addEventListener("click", ()=>{
+  const rows=readLog();
+  const lines=["Name\tScore\tCorrect/Total\tWhen"];
+  rows.forEach(r=>lines.push(`${r.name}\t${r.score}\t${r.correct}/${r.total}\t${r.time}`));
+  downloadTextFile("assessment-log.txt", lines.join("\n"));
+});
+
+render();
+</script>
+</body>
+</html>
